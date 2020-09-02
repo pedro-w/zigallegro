@@ -12,10 +12,10 @@ pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
     const exe = b.addExecutable("ex_blit_zig", "src/main.zig");
     exe.addIncludeDir("./include");
-    exe.linkSystemLibrary("allegro");
-    exe.linkSystemLibrary("allegro_color");
-    exe.linkSystemLibrary("allegro_font");
-    exe.linkSystemLibrary("allegro_image");
+    exe.linkSystemLibrary("allegro-5");
+    exe.linkSystemLibrary("allegro_color-5");
+    exe.linkSystemLibrary("allegro_font-5");
+    exe.linkSystemLibrary("allegro_image-5");
     exe.linkSystemLibrary("c");
     exe.addCSourceFile("src/shim.c", &[_][]const u8{});
     exe.setTarget(target);

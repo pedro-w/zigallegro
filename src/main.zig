@@ -7,8 +7,27 @@ const a5 = @cImport({
     @cInclude("shim.h");
 });
 
+const Timer = struct {
+    timer: f64 = 0.0,
+    counter: f64 = 0.0,
+    fn start(self: *Timer) void {
+        self.*.timer -= a5.al_get_time();
+        self.*.counter += 1.0;
+    }
+    fn stop(self: *Timer) void {
+        self.*.timer += a5.al_get_time();
+    }
+    fn fps(self: Timer) f64 {
+        if (self.timer == 0.0) {
+            return 0.0;
+        } else {
+            return self.counter / self.timer;
+        }
+    }
+};
+
 const Example = struct {
-    pattern: *a5.ALLEGRO_BITMAP, font: *a5.ALLEGRO_FONT, queue: *a5.ALLEGRO_EVENT_QUEUE, background: a5.ALLEGRO_COLOR, text: a5.ALLEGRO_COLOR, white: a5.ALLEGRO_COLOR, timer: [4]f64, counter: [4]f64, FPS: i32, text_x: f32, text_y: f32
+    pattern: *a5.ALLEGRO_BITMAP, font: *a5.ALLEGRO_FONT, queue: *a5.ALLEGRO_EVENT_QUEUE, background: a5.ALLEGRO_COLOR, text: a5.ALLEGRO_COLOR, white: a5.ALLEGRO_COLOR, timer: [4]Timer, FPS: i32, text_x: f32, text_y: f32
 };
 var ex = Example{
     .pattern = undefined,
@@ -17,18 +36,7 @@ var ex = Example{
     .background = undefined,
     .text = undefined,
     .white = undefined,
-    .timer = [_]f64{
-        0,
-        0,
-        0,
-        0,
-    },
-    .counter = [_]f64{
-        0,
-        0,
-        0,
-        0,
-    },
+    .timer = [_]Timer{.{}} ** 4,
     .FPS = undefined,
     .text_x = undefined,
     .text_y = undefined,
@@ -87,22 +95,6 @@ fn print(comptime format: []const u8, args: var) void {
     ex.text_y += th;
 }
 
-fn start_timer(i: usize) void {
-    ex.timer[i] -= a5.al_get_time();
-    ex.counter[i] += 1;
-}
-fn stop_timer(i: usize) void {
-    ex.timer[i] += a5.al_get_time();
-}
-
-fn get_fps(i: usize) f64 {
-    if (ex.timer[i] == 0) {
-        return 0.0;
-    } else {
-        return ex.counter[i] / ex.timer[i];
-    }
-}
-
 fn pixrow(lock: *a5.ALLEGRO_LOCKED_REGION, row: usize) [*]u8 {
     const pitch = @intCast(isize, lock.*.pitch);
     const data = @ptrCast([*]u8, lock.*.data);
@@ -117,11 +109,6 @@ fn pixrow(lock: *a5.ALLEGRO_LOCKED_REGION, row: usize) [*]u8 {
 fn draw() void {
     const iw = a5.al_get_bitmap_width(ex.pattern);
     const ih = a5.al_get_bitmap_height(ex.pattern);
-    //var lock: *ALLEGRO_LOCKED_REGION;
-    //var data: *void;
-    //var size: i32;
-    //var i: i32;
-    //var format: i32;
     a5.al_set_blender(a5.ALLEGRO_ADD, a5.ALLEGRO_ONE, a5.ALLEGRO_ZERO);
     a5.shim_clear_to_color(&ex.background);
     var screen = a5.al_get_target_bitmap();
@@ -132,44 +119,44 @@ fn draw() void {
     a5.shim_color_name("red", &red);
     // Test 2
     {
-        print("Screen -> Bitmap -> Screen ({d:.2} fps)", .{get_fps(1)});
+        print("Screen -> Bitmap -> Screen ({d:.2} fps)", .{ex.timer[1].fps()});
         get_xy(&x, &y);
         a5.al_draw_bitmap(ex.pattern, x, y, 0);
         var temp = a5.al_create_bitmap(iw, ih);
         a5.al_set_target_bitmap(temp);
         a5.shim_clear_to_color(&red);
-        start_timer(1);
+        ex.timer[1].start();
         a5.al_draw_bitmap_region(screen, x, y, @intToFloat(f32, iw), @intToFloat(f32, ih), 0, 0, 0);
         a5.al_set_target_bitmap(screen);
         a5.al_draw_bitmap(temp, x + 8.0 + @intToFloat(f32, iw), y, 0);
-        stop_timer(1);
+        ex.timer[1].stop();
         set_xy(x, y + @intToFloat(f32, ih));
         a5.al_destroy_bitmap(temp);
     }
     // Test 3
     {
-        print("Screen -> Memory -> Screen ({d:.2} fps)", .{get_fps(2)});
+        print("Screen -> Memory -> Screen ({d:.2} fps)", .{ex.timer[2].fps()});
         get_xy(&x, &y);
         a5.al_draw_bitmap(ex.pattern, x, y, 0);
         a5.al_set_new_bitmap_flags(a5.ALLEGRO_MEMORY_BITMAP);
         var temp = a5.al_create_bitmap(iw, ih);
         a5.al_set_target_bitmap(temp);
         a5.shim_clear_to_color(&red);
-        start_timer(2);
+        ex.timer[2].start();
         a5.al_draw_bitmap_region(screen, x, y, @intToFloat(f32, iw), @intToFloat(f32, ih), 0, 0, 0);
         a5.al_set_target_bitmap(screen);
         a5.al_draw_bitmap(temp, x + 8.0 + @intToFloat(f32, iw), y, 0);
-        stop_timer(2);
+        ex.timer[2].stop();
         set_xy(x, y + @intToFloat(f32, ih));
         a5.al_destroy_bitmap(temp);
         a5.al_set_new_bitmap_flags(a5.ALLEGRO_VIDEO_BITMAP);
     }
     // Test 4
     {
-        print("Screen -> Locked -> Screen ({d:.2} fps)", .{get_fps(3)});
+        print("Screen -> Locked -> Screen ({d:.2} fps)", .{ex.timer[3].fps()});
         get_xy(&x, &y);
         a5.al_draw_bitmap(ex.pattern, x, y, 0);
-        start_timer(3);
+        ex.timer[3].start();
         const lock = a5.al_lock_bitmap_region(screen, @floatToInt(c_int, x), @floatToInt(c_int, y), iw, ih, a5.ALLEGRO_PIXEL_FORMAT_ANY, a5.ALLEGRO_LOCK_READONLY);
         const size = @intCast(usize, lock.*.pixel_size);
         const data = std.heap.c_allocator.alloc(u8, size * @intCast(usize, iw * ih)) catch unreachable;
@@ -190,7 +177,7 @@ fn draw() void {
         a5.al_unlock_bitmap(screen);
 
         std.heap.c_allocator.free(data);
-        stop_timer(3);
+        ex.timer[3].stop();
         set_xy(x, y + @intToFloat(f32, ih));
     }
 }

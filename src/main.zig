@@ -213,9 +213,10 @@ export fn user_main(argc: c_int, argv: [*c][*c]u8) c_int {
 
     init();
 
-    var timer = a5.al_create_timer(1.0 / @intToFloat(f32, ex.FPS));
+    var timer = a5.al_create_timer(1.0 / @intToFloat(f32, ex.FPS)).?;
 
     ex.queue = a5.al_create_event_queue().?;
+    defer a5.al_destroy_event_queue(ex.queue);
     a5.al_register_event_source(ex.queue, a5.al_get_keyboard_event_source());
     a5.al_register_event_source(ex.queue, a5.al_get_mouse_event_source());
     a5.al_register_event_source(ex.queue, a5.al_get_display_event_source(display));
@@ -223,8 +224,6 @@ export fn user_main(argc: c_int, argv: [*c][*c]u8) c_int {
 
     a5.al_start_timer(timer);
     run();
-
-    a5.al_destroy_event_queue(ex.queue);
 
     return 0;
 }
@@ -236,7 +235,7 @@ fn run() void {
             tick();
             need_draw = false;
         }
-        var event = a5.ALLEGRO_EVENT{ .type = undefined };
+        var event: a5.ALLEGRO_EVENT = undefined;
 
         a5.al_wait_for_event(ex.queue, &event);
 

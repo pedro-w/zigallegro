@@ -63,12 +63,12 @@ fn example_bitmap(w: i32, h: i32) *a5.ALLEGRO_BITMAP {
                 hue = (hue / 360 - std.math.floor(hue / 360.0)) * 360.0;
                 var color: a5.ALLEGRO_COLOR = undefined;
                 a5.shim_color_hsv(hue, sat, 1, &color);
-                a5.shim_put_pixel(i, j, &color);
+                a5.al_put_pixel(i, j, color);
             }
         }
         var black: a5.ALLEGRO_COLOR = undefined;
         a5.shim_color_name("black", &black);
-        a5.shim_put_pixel(0, 0, &black);
+        a5.al_put_pixel(0, 0, black);
         a5.al_unlock_bitmap(pattern);
         a5.al_restore_state(&state);
         return pattern;
@@ -86,12 +86,14 @@ fn get_xy(px: *f32, py: *f32) void {
     py.* = ex.text_y;
 }
 
-fn print(comptime format: []const u8, args: var) void {
+fn print(comptime format: []const u8, args: anytype) void {
     var buffer: [1024]u8 = undefined;
     const message = std.fmt.bufPrint(buffer[0..], format, args) catch "???";
     const th = @intToFloat(f32, a5.al_get_font_line_height(ex.font));
     a5.al_set_blender(a5.ALLEGRO_ADD, a5.ALLEGRO_ONE, a5.ALLEGRO_INVERSE_ALPHA);
-    a5.shim_draw_text(ex.font, &ex.text, ex.text_x, ex.text_y, @ptrCast([*c]const u8, message));
+    // not yet! compiler error
+    //    a5.al_draw_text(ex.font, ex.text, ex.text_x, ex.text_y, 0, @ptrCast([*c]const u8, message));
+    a5.shim_draw_text(ex.font, &ex.text, ex.text_x, ex.text_y, 0, @ptrCast([*c]const u8, message));
     ex.text_y += th;
 }
 
@@ -110,7 +112,7 @@ fn draw() void {
     const iw = a5.al_get_bitmap_width(ex.pattern);
     const ih = a5.al_get_bitmap_height(ex.pattern);
     a5.al_set_blender(a5.ALLEGRO_ADD, a5.ALLEGRO_ONE, a5.ALLEGRO_ZERO);
-    a5.shim_clear_to_color(&ex.background);
+    a5.al_clear_to_color(ex.background);
     var screen = a5.al_get_target_bitmap();
     set_xy(8, 8);
     var x: f32 = undefined;
@@ -124,7 +126,7 @@ fn draw() void {
         a5.al_draw_bitmap(ex.pattern, x, y, 0);
         var temp = a5.al_create_bitmap(iw, ih);
         a5.al_set_target_bitmap(temp);
-        a5.shim_clear_to_color(&red);
+        a5.al_clear_to_color(red);
         ex.timer[1].start();
         a5.al_draw_bitmap_region(screen, x, y, @intToFloat(f32, iw), @intToFloat(f32, ih), 0, 0, 0);
         a5.al_set_target_bitmap(screen);
@@ -141,7 +143,7 @@ fn draw() void {
         a5.al_set_new_bitmap_flags(a5.ALLEGRO_MEMORY_BITMAP);
         var temp = a5.al_create_bitmap(iw, ih);
         a5.al_set_target_bitmap(temp);
-        a5.shim_clear_to_color(&red);
+        a5.al_clear_to_color(red);
         ex.timer[2].start();
         a5.al_draw_bitmap_region(screen, x, y, @intToFloat(f32, iw), @intToFloat(f32, ih), 0, 0, 0);
         a5.al_set_target_bitmap(screen);

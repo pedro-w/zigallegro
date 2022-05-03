@@ -1,4 +1,4 @@
 This is a conversion of the 'ex_blit' example from Allegro 5, to use the
-zig language (v.0.6.0)
+[Zig language](https://ziglang.org) v.0.9.1
 
 The fixed_font.tga resource has been copied from Allegro.

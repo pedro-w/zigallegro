@@ -8,17 +8,6 @@ const a5 = @cImport({
 });
 
 // Soon these shims can go away...
-fn al_color_name(name: []const u8) a5.ALLEGRO_COLOR {
-    var c: a5.ALLEGRO_COLOR = undefined;
-    a5.shim_color_name(@ptrCast([*c]const u8, name), &c);
-    return c;
-}
-
-fn al_color_hsv(h: f32, s: f32, v: f32) a5.ALLEGRO_COLOR {
-    var c: a5.ALLEGRO_COLOR = undefined;
-    a5.shim_color_hsv(h, s, v, &c);
-    return c;
-}
 
 fn al_init() bool {
     return a5.shim_init();
@@ -44,9 +33,7 @@ const Timer = struct {
     }
 };
 
-const Example = struct {
-    pattern: *a5.ALLEGRO_BITMAP, font: *a5.ALLEGRO_FONT, queue: *a5.ALLEGRO_EVENT_QUEUE, background: a5.ALLEGRO_COLOR, text: a5.ALLEGRO_COLOR, white: a5.ALLEGRO_COLOR, timer: [4]Timer, FPS: i32, text_x: f32, text_y: f32
-};
+const Example = struct { pattern: *a5.ALLEGRO_BITMAP, font: *a5.ALLEGRO_FONT, queue: *a5.ALLEGRO_EVENT_QUEUE, background: a5.ALLEGRO_COLOR, text: a5.ALLEGRO_COLOR, white: a5.ALLEGRO_COLOR, timer: [4]Timer, FPS: i32, text_x: f32, text_y: f32 };
 var ex = Example{
     .pattern = undefined,
     .font = undefined,
@@ -79,11 +66,11 @@ fn example_bitmap(w: i32, h: i32) *a5.ALLEGRO_BITMAP {
                 const sat = std.math.pow(f32, 1.0 - 1.0 / (1.0 + d * 0.1), 5);
                 var hue = 3.0 * a * 180 / std.math.pi;
                 hue = (hue / 360 - std.math.floor(hue / 360.0)) * 360.0;
-                var color: a5.ALLEGRO_COLOR = al_color_hsv(hue, sat, 1.0);
+                var color: a5.ALLEGRO_COLOR = a5.al_color_hsv(hue, sat, 1.0);
                 a5.al_put_pixel(i, j, color);
             }
         }
-        var black: a5.ALLEGRO_COLOR = al_color_name("black");
+        var black: a5.ALLEGRO_COLOR = a5.al_color_name("black");
         a5.al_put_pixel(0, 0, black);
         a5.al_unlock_bitmap(pattern);
         a5.al_restore_state(&state);
@@ -107,9 +94,7 @@ fn print(comptime format: []const u8, args: anytype) void {
     const message = std.fmt.bufPrint(buffer[0..], format, args) catch "???";
     const th = @intToFloat(f32, a5.al_get_font_line_height(ex.font));
     a5.al_set_blender(a5.ALLEGRO_ADD, a5.ALLEGRO_ONE, a5.ALLEGRO_INVERSE_ALPHA);
-    // not yet! compiler error
-    //    a5.al_draw_text(ex.font, ex.text, ex.text_x, ex.text_y, 0, @ptrCast([*c]const u8, message));
-    a5.shim_draw_text(ex.font, &ex.text, ex.text_x, ex.text_y, 0, @ptrCast([*c]const u8, message));
+    a5.al_draw_text(ex.font, ex.text, ex.text_x, ex.text_y, 0, @ptrCast([*c]const u8, message));
     ex.text_y += th;
 }
 
@@ -133,7 +118,7 @@ fn draw() void {
     set_xy(8, 8);
     var x: f32 = undefined;
     var y: f32 = undefined;
-    var red: a5.ALLEGRO_COLOR = al_color_name("red");
+    var red: a5.ALLEGRO_COLOR = a5.al_color_name("red");
     // Test 2
     {
         print("Screen -> Bitmap -> Screen ({d:.2} fps)", .{ex.timer[1].fps()});
@@ -208,13 +193,13 @@ fn init() void {
 
     ex.font = (a5.al_load_font("data/fixed_font.tga", 0, 0) orelse
         abort_example("data/fixed_font.tga not found\n"));
-    ex.background = al_color_name("beige");
-    ex.text = al_color_name("black");
-    ex.white = al_color_name("white");
+    ex.background = a5.al_color_name("beige");
+    ex.text = a5.al_color_name("black");
+    ex.white = a5.al_color_name("white");
     ex.pattern = example_bitmap(100, 100);
 }
 
-export fn user_main(argc: c_int, argv: [*c][*c]u8) c_int {
+export fn user_main(_: c_int, _: [*c][*c]u8) c_int {
     if (!al_init()) {
         abort_example("Could not init Allegro.\n");
     }
@@ -270,12 +255,10 @@ fn run() void {
 }
 
 pub fn main() anyerror!void {
-    const arg0 = "app";
-    const argv = null; //[][]u8{&arg0[0]};
-    _ = a5.al_run_main(1, argv, user_main);
+    _ = a5.al_run_main(1, null, user_main);
 }
 
 fn abort_example(msg: []const u8) noreturn {
-    std.debug.panic("Example aborted:\n{}\n", .{msg});
+    std.debug.panic("Example aborted:\n{s}\n", .{msg});
 }
 fn init_platform_specific() void {}
